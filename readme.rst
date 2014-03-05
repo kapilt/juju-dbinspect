@@ -1,0 +1,70 @@
+Juju DB Introspection
+---------------------
+
+Use at own risk.
+
+
+Usage::
+
+  kapil@realms-slice:~$ python dbshell.py fargo
+  Juju DB Shell
+
+
+The basics::
+
+
+  >>> units()
+  [u'message/0', u'db/0', u'identity/0', u'meter/0']
+  >>> machines()
+  [u'0', u'230', u'232', u'233', u'231']
+  >>> services()
+  [u'db', u'identity', u'message', u'meter']
+
+
+Let's inspect machine 0's constraints::
+
+  >> machine('0').constraints
+    {u'cpupower': None, u'container': None, u'cpucores': None,
+     u'mem': None, u'arch': None, u'rootdisk': None}
+
+Let's inspect the relation data between identity
+and metering service units::
+
+  >>> unit('meter/0').relation_data('identity')
+   {u'_id': u'r#190#requirer#meter/0',
+    u'admin_url': u'http://10.0.3.103:8777',
+    u'internal_url': u'http://10.0.3.103:8777',
+    u'private-address': u'10.0.3.103',
+    u'public_url': u'http://10.0.3.103:8777',
+    u'region': u'RegionOne',
+    u'requested_roles': u'ResellerAdmin',
+    u'service': u'ceilometer'}
+
+  >>> unit('identity/0').relation_data('meter')
+   {u'_id': u'r#190#provider#identity/0',
+    u'admin_token': u'witieweithoinaiwuojeFiepuneiseye',
+    u'auth_host': u'10.0.3.27',
+    u'auth_port': u'35357',
+    u'auth_protocol': u'https',
+    u'ca_cert': u'omitted for brevity',
+    u'https_keystone': u'True',
+    u'private-address': u'10.0.3.27',
+    u'service_host': u'10.0.3.27',
+    u'service_password': u'eingahVeehivaiHahnohngahTooYizei',
+    u'service_port': u'5000',
+    u'service_protocol': u'https',
+    u'service_tenant': u'services',
+    u'service_username': u'ceilometer',
+    u'ssl_cert': u'omitted for brevity',
+    u'ssl_key': u'omitted for brevity'}
+  >>>
+
+Available helper commands
+
+    units
+    unit
+    services
+    service,
+    machines
+    machine
+    relations
