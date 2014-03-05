@@ -1,7 +1,35 @@
 Juju DB Introspection
 ---------------------
 
-Use at own risk.
+
+Provide introspection tools to understand the state of the system,
+including relation data which is normally opaque.
+
+***Use at own risk.***
+
+This is very specific to the underlying database structures
+of juju, which is an implementation detail subject to change
+without notice.
+
+Do not attempt to write to any of these structures, bad things will
+happen and you get to keep all the broken things. Use the juju api if
+you need to modify something. Juju uses a client-side transaction
+library that does multi-document mods atomically and is dependent on
+all writers using the same txn library. More details on that here for
+the curious
+
+http://blog.labix.org/2012/08/22/multi-doc-transactions-for-mongodb
+
+
+Install
+-------
+
+  
+TODO
+
+
+Intro
+-----
 
 
 Usage::
