@@ -1,15 +1,18 @@
 Juju DB Introspection
 ---------------------
 
-
 Provide introspection tools to understand the state of the system,
 including relation data which is normally opaque.
 
 ***Use at own risk.***
 
-This is very specific to the underlying database structures
-of juju, which is an implementation detail subject to change
-without notice.
+***This can break between any juju version***
+
+This is very specific to the underlying database structures of any
+given juju version, which is an implementation detail subject to
+change without notice.
+
+*** Do no write to the db ***
 
 Do not attempt to write to any of these structures, bad things will
 happen and you get to keep all the broken things. Use the juju api if
@@ -24,8 +27,10 @@ http://blog.labix.org/2012/08/22/multi-doc-transactions-for-mongodb
 Install
 -------
 
-  
 TODO
+
+Depending on your provider you may need to open up access to port 37017 on
+the state server (machine 0 if not ha).
 
 
 Intro
@@ -34,12 +39,11 @@ Intro
 
 Usage::
 
-  kapil@realms-slice:~$ python dbshell.py fargo
+  kapil@realms-slice:~$ python dbshell.py syracuse
   Juju DB Shell
-
+  >>>
 
 The basics::
-
 
   >>> units()
   [u'message/0', u'db/0', u'identity/0', u'meter/0']
@@ -47,13 +51,44 @@ The basics::
   [u'0', u'230', u'232', u'233', u'231']
   >>> services()
   [u'db', u'identity', u'message', u'meter']
-
+  >>> pprint(relations())
+  [u'db:cluster',
+   u'message:cluster',
+   u'identity:cluster',
+   u'meter:identity-service identity:identity-service',
+   u'identity:shared-db db:shared-db',
+   u'meter:amqp message:amqp']
 
 Let's inspect machine 0's constraints::
 
   >> machine('0').constraints
     {u'cpupower': None, u'container': None, u'cpucores': None,
      u'mem': None, u'arch': None, u'rootdisk': None}
+
+And what's going on with the meter/0 unit::
+  
+   >>> pprint(unit('meter/0'))
+
+   {u'_id': u'meter/0',
+    u'charmurl': u'local:precise/ceilometer-52',
+    u'life': 0,
+    u'machineid': u'233',
+    u'ports': [{u'number': 8777, u'protocol': u'tcp'}],
+    u'principal': u'',
+    u'privateaddress': u'10.0.3.103',
+    u'publicaddress': u'10.0.3.103',
+    u'resolved': u'',
+    u'series': u'precise',
+    u'service': u'meter',
+    u'subordinates': [],
+    u'tools': {u'sha256': u'',
+               u'size': 0L,
+               u'url': u'',
+               u'version': u'1.17.3.1-precise-amd64'}}
+
+
+    >>> unit('meter/0').status
+    {u'status': u'started', u'statusinfo': u'', u'statusdata': {}}
 
 Let's inspect the relation data between identity
 and metering service units::
@@ -89,10 +124,13 @@ and metering service units::
 
 Available helper commands
 
-    units
-    unit
-    services
-    service,
-    machines
-    machine
-    relations
+    - units
+    - unit
+    - services
+    - service
+    - machines
+    - machine
+    - relations
+    - charms
+
+
