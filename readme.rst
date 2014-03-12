@@ -4,19 +4,23 @@ Juju DB Introspection
 Provide introspection tools to understand the state of the system,
 including relation data which is normally opaque.
 
-***Use at own risk.***
+This is intended as a foresnic tool for advanced users to diagnose
+or examine the state of the system.
 
-***This can break between any juju version***
+***Use at own risk. This can break between any juju versions***
 
 This is very specific to the underlying database structures of any
 given juju version, which is an implementation detail subject to
 change without notice.
 
+That said the implementation here works across all extant releases of
+juju core. However past success is no guarantee of future compatiblity.
+
 *** Do no write to the db ***
 
 Do not attempt to write to any of these structures, bad things will
 happen and you get to keep all the broken things. Use the juju api if
-you need to modify something. Juju uses a client-side transaction
+you need to modify something. Juju uses a mongodb client-side transaction
 library that does multi-document mods atomically and is dependent on
 all writers using the same txn library. More details on that here for
 the curious
@@ -37,9 +41,9 @@ Intro
 -----
 
 
-Usage::
+Python Shell Usage::
 
-  kapil@realms-slice:~$ python dbshell.py syracuse
+  kapil@realms-slice:~$ juju dbshell -e syracuse
   Juju DB Shell
   >>>
 
@@ -59,11 +63,18 @@ The basics::
    u'identity:shared-db db:shared-db',
    u'meter:amqp message:amqp']
 
+
 Let's inspect machine 0's constraints::
 
   >> machine('0').constraints
     {u'cpupower': None, u'container': None, u'cpucores': None,
      u'mem': None, u'arch': None, u'rootdisk': None}
+
+What units are on machine 230::
+
+
+  >> machine('230').units
+
 
 And what's going on with the meter/0 unit::
   
@@ -90,8 +101,8 @@ And what's going on with the meter/0 unit::
     >>> unit('meter/0').status
     {u'status': u'started', u'statusinfo': u'', u'statusdata': {}}
 
-Let's inspect the relation data between identity
-and metering service units::
+Let's inspect the identity to metering service relation and look at the relation data
+of their units::
 
   >>> unit('meter/0').relation_data('identity')
    {u'_id': u'r#190#requirer#meter/0',
@@ -121,6 +132,106 @@ and metering service units::
     u'ssl_cert': u'omitted for brevity',
     u'ssl_key': u'omitted for brevity'}
   >>>
+
+
+We can also examine the history of the environment via introspection of the transaction log::
+
+  >>> history()
+
+  2014/03/06-19:31:39 applied
+    units:message/0 update {u'$set': {u'privateaddress': u'10.0.3.215'}}
+  2014/03/06-19:31:39 applied
+    units:message/0 update {u'$set': {u'publicaddress': u'10.0.3.215'}}
+  2014/03/06-19:31:40 applied
+    settingsrefs:s#message#local:precise/rabbitmq-server-146 update {u'$inc': {u'refcount': 1}}
+    units:message/0 update {u'$set': {u'charmurl': u'local:precise/rabbitmq-server-146'}}
+  2014/03/06-19:33:07 applied
+    units:message/0 update {u'$addToSet': {u'ports': {u'protocol': u'tcp', u'number': 5672}}}
+  2014/03/06-19:33:08 applied
+    units:message/0 cond {u'life': {u'$ne': 2}}
+    statuses:u#message/0 update {u'$set': {u'status': u'installed', u'statusdata': {}, u'statusinfo': u''}}
+  2014/03/06-19:33:08 applied
+    units:message/0 update {u'$pull': {u'ports': {u'protocol': u'tcp', u'number': 55672}}}
+  2014/03/06-19:33:09 applied
+    units:message/0 update {u'$addToSet': {u'ports': {u'protocol': u'tcp', u'number': 5671}}}
+  2014/03/06-19:33:13 applied
+    units:message/0 cond {u'life': {u'$ne': 2}}
+    statuses:u#message/0 update {u'$set': {u'status': u'started', u'statusdata': {}, u'statusinfo': u''}}
+  2014/03/06-19:33:13 applied
+    units:message/0 cond {u'life': 0}
+    relations:message:cluster update {u'$inc': {u'unitcount': 1}}
+    settings:r#198#peer#message/0 create {u'private-address': u'10.0.3.215'}
+    relationscopes:r#198#peer#message/0 create {u'_id': u'r#198#peer#message/0'}
+  2014/03/06-19:33:16 applied
+    units:meter/0 update {u'$addToSet': {u'ports': {u'protocol': u'tcp', u'number': 8777}}}
+  2014/03/06-19:33:16 applied
+    units:meter/0 cond {u'life': {u'$ne': 2}}
+    statuses:u#meter/0 update {u'$set': {u'status': u'installed', u'statusdata': {}, u'statusinfo': u''}}
+  2014/03/06-19:33:20 applied
+    units:identity/0 cond {u'life': {u'$ne': 2}}
+    statuses:u#identity/0 update {u'$set': {u'status': u'installed', u'statusdata': {}, u'statusinfo': u''}}
+  2014/03/06-19:33:23 applied
+    units:meter/0 cond {u'life': {u'$ne': 2}}
+    statuses:u#meter/0 update {u'$set': {u'status': u'started', u'statusdata': {}, u'statusinfo': u''}}
+  2014/03/06-19:33:43 applied
+    units:identity/0 cond {u'life': {u'$ne': 2}}
+    statuses:u#identity/0 update {u'$set': {u'status': u'started', u'statusdata': {}, u'statusinfo': u''}}
+  2014/03/06-19:33:43 applied
+    units:identity/0 cond {u'life': 0}
+    relations:identity:cluster update {u'$inc': {u'unitcount': 1}}
+    settings:r#197#peer#identity/0 create {u'private-address': u'10.0.3.80'}
+    relationscopes:r#197#peer#identity/0 create {u'_id': u'r#197#peer#identity/0'}
+  2014/03/06-19:33:47 applied
+    services:meter update {u'$inc': {u'relationcount': 1}}
+    services:message update {u'$inc': {u'relationcount': 1}}
+    relations:meter:amqp message:amqp create {u'endpoints':
+    [{u'servicename': u'meter', u'relation': {u'name': u'amqp',
+    u'limit': 1, u'scope': u'global', u'interface': u'rabbitmq',
+    u'role': u'requirer', u'optional': False}}, {u'servicename':
+    u'message', u'relation': {u'name': u'amqp', u'limit': 0, u'scope':
+    u'global', u'interface': u'rabbitmq', u'role': u'provider',
+    u'optional': False}}], u'life': 0, u'_id': u'meter:amqp
+    message:amqp', u'id': 199, u'unitcount': 0}
+  2014/03/06-19:33:47
+  applied
+    services:identity update {u'$inc': {u'relationcount': 1}}
+    services:db update {u'$inc': {u'relationcount': 1}}
+    relations:identity:shared-db db:shared-db create {u'endpoints':
+  [{u'servicename': u'identity', u'relation': {u'name': u'shared-db',
+  u'limit': 1, u'scope': u'global', u'interface': u'mysql-shared',
+  u'role': u'requirer', u'optional': False}}, {u'servicename': u'db',
+  u'relation': {u'name': u'shared-db', u'limit': 0, u'scope':
+  u'global', u'interface': u'mysql-shared', u'role': u'provider',
+  u'optional': False}}], u'life': 0, u'_id': u'identity:shared-db
+  db:shared-db', u'id': 200, u'unitcount': 0} 2014/03/06-19:33:52
+  applied
+
+    units:meter/0 cond {u'life': 0}
+    relations:meter:amqp message:amqp update {u'$inc': {u'unitcount': 1}}
+    settings:r#199#requirer#meter/0 create {u'private-address': u'10.0.3.151'}
+    relationscopes:r#199#requirer#meter/0 create {u'_id': u'r#199#requirer#meter/0'}
+  2014/03/06-19:33:52 applied
+    units:identity/0 cond {u'life': 0}
+    relations:identity:shared-db db:shared-db update {u'$inc': {u'unitcount': 1}}
+    settings:r#200#requirer#identity/0 create {u'private-address': u'10.0.3.80'}
+    relationscopes:r#200#requirer#identity/0 create {u'_id': u'r#200#requirer#identity/0'}
+  2014/03/06-19:33:52 applied
+    units:db/0 cond {u'life': 0}
+    relations:identity:shared-db db:shared-db update {u'$inc': {u'unitcount': 1}}
+    settings:r#200#provider#db/0 create {u'private-address': u'10.0.3.225'}
+    relationscopes:r#200#provider#db/0 create {u'_id': u'r#200#provider#db/0'}
+  2014/03/06-19:33:52 applied
+    units:message/0 cond {u'life': 0}
+    relations:meter:amqp message:amqp update {u'$inc': {u'unitcount': 1}}
+    settings:r#199#provider#message/0 create {u'private-address': u'10.0.3.215'}
+    relationscopes:r#199#provider#message/0 create {u'_id': u'r#199#provider#message/0'}
+  2014/03/06-19:33:53 applied
+    settings:r#199#provider#message/0 update {u'$set': {u'hostname':
+    u'10.0.3.215', u'ssl_port': u'5671', u'ssl_ca':'value_omitted'}
+    u'$unset': {}}
+
+
+
 
 Available helper commands
 
