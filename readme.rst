@@ -5,7 +5,7 @@ Provide introspection tools to understand the state of the system,
 including relation data which is normally opaque.
 
 This is intended as a foresnic tool for advanced users to diagnose
-or examine the state of the system.
+or examine the state of the environment.
 
 ***Use at own risk. This can break between any juju versions***
 
@@ -29,25 +29,77 @@ http://blog.labix.org/2012/08/22/multi-doc-transactions-for-mongodb
 
 
 Install
--------
+=======
 
-TODO
+Available via pypi, dependencies are pymongo and pyyaml::
 
-Depending on your provider you may need to open up access to port 37017 on
-the state server (machine 0 if not ha).
+  $ pip install juju-dbinspect
 
-
-Intro
------
+Depending on your provider and juju version you may need to open up
+access to port 37017 on the state server (machine 0 if not ha).
 
 
-Python Shell Usage::
+CLI Intro
+=========
 
-  kapil@realms-slice:~$ juju dbshell -e syracuse
+
+CLI Usage is documented via the built-in help::
+
+  $ juju db --help
+
+  juju db --help
+  usage: juju-db [-h] [-e ENVIRONMENT] [-v] targets [targets ...]
+
+  Juju database introspection
+
+    Drop into an interactive python shell.
+      $ juju db shell
+
+    Get the last n transactions (default 100) that have modified the
+    environment.
+      $ juju db history [n]
+
+    Get the names of all the services in the system.
+      $ juju db services
+
+    Get the names of all the units in the system.
+      $ juju db units
+
+    Get the details on machine 0.
+      $ juju db 0
+
+    Get the details on the unit mysql/0.
+      $ juju db mysql/0
+
+    Get the details on the mysql service::
+      $ juju db mysql
+
+    Get the relation settings for the mysql/0 unit in the wordpress relation::
+      $ juju db mysql/0 wordpress
+
+
+  positional arguments:
+    targets
+
+  optional arguments:
+    -h, --help            show this help message and exit
+    -e ENVIRONMENT, --environment ENVIRONMENT
+                        Juju environment to operate on
+    -v, --verbose         Verbose output
+
+
+
+DB Interactive Shell
+====================
+
+Also available with the same core functionality is a python interactive shell with access to the
+db. The shell can be started with::
+
+  kapil@realms-slice:~$ juju db shell -e syracuse
   Juju DB Shell
   >>>
 
-The basics::
+Basics entity iteration commands::
 
   >>> units()
   [u'message/0', u'db/0', u'identity/0', u'meter/0']
@@ -72,12 +124,11 @@ Let's inspect machine 0's constraints::
 
 What units are on machine 230::
 
-
   >> machine('230').units
 
 
 And what's going on with the meter/0 unit::
-  
+
    >>> pprint(unit('meter/0'))
 
    {u'_id': u'meter/0',
@@ -162,54 +213,11 @@ We can also examine the history of the environment via introspection of the tran
     relations:message:cluster update {u'$inc': {u'unitcount': 1}}
     settings:r#198#peer#message/0 create {u'private-address': u'10.0.3.215'}
     relationscopes:r#198#peer#message/0 create {u'_id': u'r#198#peer#message/0'}
-  2014/03/06-19:33:16 applied
-    units:meter/0 update {u'$addToSet': {u'ports': {u'protocol': u'tcp', u'number': 8777}}}
-  2014/03/06-19:33:16 applied
-    units:meter/0 cond {u'life': {u'$ne': 2}}
-    statuses:u#meter/0 update {u'$set': {u'status': u'installed', u'statusdata': {}, u'statusinfo': u''}}
-  2014/03/06-19:33:20 applied
-    units:identity/0 cond {u'life': {u'$ne': 2}}
-    statuses:u#identity/0 update {u'$set': {u'status': u'installed', u'statusdata': {}, u'statusinfo': u''}}
-  2014/03/06-19:33:23 applied
-    units:meter/0 cond {u'life': {u'$ne': 2}}
-    statuses:u#meter/0 update {u'$set': {u'status': u'started', u'statusdata': {}, u'statusinfo': u''}}
-  2014/03/06-19:33:43 applied
-    units:identity/0 cond {u'life': {u'$ne': 2}}
-    statuses:u#identity/0 update {u'$set': {u'status': u'started', u'statusdata': {}, u'statusinfo': u''}}
   2014/03/06-19:33:43 applied
     units:identity/0 cond {u'life': 0}
     relations:identity:cluster update {u'$inc': {u'unitcount': 1}}
     settings:r#197#peer#identity/0 create {u'private-address': u'10.0.3.80'}
     relationscopes:r#197#peer#identity/0 create {u'_id': u'r#197#peer#identity/0'}
-  2014/03/06-19:33:47 applied
-    services:meter update {u'$inc': {u'relationcount': 1}}
-    services:message update {u'$inc': {u'relationcount': 1}}
-    relations:meter:amqp message:amqp create {u'endpoints':
-    [{u'servicename': u'meter', u'relation': {u'name': u'amqp',
-    u'limit': 1, u'scope': u'global', u'interface': u'rabbitmq',
-    u'role': u'requirer', u'optional': False}}, {u'servicename':
-    u'message', u'relation': {u'name': u'amqp', u'limit': 0, u'scope':
-    u'global', u'interface': u'rabbitmq', u'role': u'provider',
-    u'optional': False}}], u'life': 0, u'_id': u'meter:amqp
-    message:amqp', u'id': 199, u'unitcount': 0}
-  2014/03/06-19:33:47
-  applied
-    services:identity update {u'$inc': {u'relationcount': 1}}
-    services:db update {u'$inc': {u'relationcount': 1}}
-    relations:identity:shared-db db:shared-db create {u'endpoints':
-  [{u'servicename': u'identity', u'relation': {u'name': u'shared-db',
-  u'limit': 1, u'scope': u'global', u'interface': u'mysql-shared',
-  u'role': u'requirer', u'optional': False}}, {u'servicename': u'db',
-  u'relation': {u'name': u'shared-db', u'limit': 0, u'scope':
-  u'global', u'interface': u'mysql-shared', u'role': u'provider',
-  u'optional': False}}], u'life': 0, u'_id': u'identity:shared-db
-  db:shared-db', u'id': 200, u'unitcount': 0} 2014/03/06-19:33:52
-  applied
-
-    units:meter/0 cond {u'life': 0}
-    relations:meter:amqp message:amqp update {u'$inc': {u'unitcount': 1}}
-    settings:r#199#requirer#meter/0 create {u'private-address': u'10.0.3.151'}
-    relationscopes:r#199#requirer#meter/0 create {u'_id': u'r#199#requirer#meter/0'}
   2014/03/06-19:33:52 applied
     units:identity/0 cond {u'life': 0}
     relations:identity:shared-db db:shared-db update {u'$inc': {u'unitcount': 1}}
@@ -231,8 +239,6 @@ We can also examine the history of the environment via introspection of the tran
     u'$unset': {}}
 
 
-
-
 Available helper commands
 
     - units
@@ -242,6 +248,7 @@ Available helper commands
     - machines
     - machine
     - relations
+    - relation
     - charms
 
 
