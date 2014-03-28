@@ -89,7 +89,7 @@ def invoke_action(client, db, targets):
     elif targets[0] == "services":
         return sorted(services(db))
     elif targets[0] == "history":
-        return sorted(history(db))
+        return history(db)
 
     if len(targets) == 1:
         t = targets.pop()
@@ -145,9 +145,9 @@ def main():
     import json
     try:
         log.debug("Invoking action")
-        print json.dumps(
-            invoke_action(client, db, options.targets),
-            indent=2)
+        result = invoke_action(client, db, options.targets)
+        if result is not None:
+            print json.dumps(result, indent=2)
         log.debug("Action complete")
     except ValueError, e:
         print("Invalid paramaters: %s" % e)

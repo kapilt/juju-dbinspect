@@ -46,8 +46,8 @@ class Config(object):
                 env_data['bootstrap-host'] = host
             env_conf = yaml.load(self.get_env_conf())['environments'][env_name]
             env_data['admin-secret'] = env_conf['admin-secret']
-        # if 1.17/1.18 hack around juju
-        elif 'bootstrap-host' in env_data['bootstrap-config']:
+        # if 1.17/1.18 hack around juju (this changed without notice in 1.17.6
+        elif 'state-servers' in env_data:
             # db password only stored in old-password of agent.conf
             # http://pad.lv/1270434 marked won't fix/opinion.. whatever.
             output = subprocess.check_output([
@@ -55,8 +55,8 @@ class Config(object):
                 "sudo cat /var/lib/juju/agents/machine-0/agent.conf"])
             mdata = yaml.safe_load(output)
             env_data['admin-secret'] = mdata['oldpassword']
-            env_data['bootstrap-host'] = env_data[
-                'bootstrap-config']['bootstrap-host']
+            env_data['bootstrap-host'] = env_data['state-servers'][
+                0].split(":")[0]
         uri = "mongodb://%(bootstrap-host)s:37017/juju?w=1&ssl=true" % env_data
         return uri, env_data['admin-secret']
 

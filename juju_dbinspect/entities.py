@@ -10,6 +10,12 @@ from bson.objectid import ObjectId
 OMIT = {'txn-queue': 0, 'txn-revno': 0}
 
 
+def empty_err(v, k):
+    if v is None:
+        raise ValueError("No entity found for %s" % k)
+    return v
+
+
 def omit(*keys):
     d = dict(OMIT)
     d.update(dict(zip(keys, itertools.repeat(0))))
@@ -34,8 +40,10 @@ def units(db):
 @shellfunc
 def unit(db, uid):
     """Get a unit by name."""
-    u = db.units.find_one(
-        {"_id": uid}, omit('nonce', 'passwordhash'), as_class=Unit)
+    u = empty_err(
+        db.units.find_one(
+            {"_id": uid}, omit('nonce', 'passwordhash'), as_class=Unit),
+        uid)
     u.db = db
     return u
 
@@ -49,7 +57,9 @@ def services(db):
 @shellfunc
 def service(db, sid):
     """Get a service by name."""
-    s = db.services.find_one({"_id": sid}, OMIT, as_class=Service)
+    s = empty_err(
+        db.services.find_one({"_id": sid}, OMIT, as_class=Service),
+        sid)
     s.db = db
     return s
 
@@ -83,7 +93,9 @@ def relations(db, service=None):
 def relation(db, relation_ep):
     """Get the relation from the given endpoint(s).
     """
-    m = db.relations.find_one({"_id": relation_ep}, OMIT, as_class=Relation)
+    m = empty_err(
+        db.relations.find_one({"_id": relation_ep}, OMIT, as_class=Relation),
+        relation_ep)
     m.db = db
     return m
 
@@ -97,7 +109,9 @@ def charms(db):
 @shellfunc
 def charm(db, charm_url):
     """Get a charm by url."""
-    c = db.charms.find_one({"_id": charm_url}, OMIT, as_class=Charm)
+    c = empty_err(
+        db.charms.find_one({"_id": charm_url}, OMIT, as_class=Charm),
+        charm_url)
     c.db = db
     return c
 
@@ -238,14 +252,23 @@ class Service(RelationEndpoint):
 class Relation(Base):
 
     @property
-    def units(self):
-        return [u['_id'].rsplit('#', 1)[1] for u in self._unit_ids]
+    def unit_ids(self):
+        return [u.rsplit('#', 1)[1] for u in self._unit_rel_ids()]
 
-    def _unit_ids(self):
+    def _unit_rel_ids(self):
         r_id = 'r#%d#' % self['id']
-        # alternatively query services, and query units.
-        return self.db.settings.find(
-            {'_id': {'$regex': '^%s.*' % r_id}}, {"_id": 1})
+        # This can be fulfilled from index, but a prefix begin/end
+        # would be faster.
+        return [u['_id'] for u in self.db.settings.find(
+            {'_id': {'$regex': '^%s.*' % r_id}}, {"_id": 1})]
+
+    def history(self):
+        # Won't include deleted units, would need to iterate
+        # full set of units based on svc seq.
+        q = self.db.txns.find(
+            {"o.c": "settings", 'o.d': {'$in': self._unit_rel_ids()}})
+        for t in q:
+            Txn.format(t)
 
 
 class Machine(Entity):

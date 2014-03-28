@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(name='juju-dbinspect',
-      version="0.1.0",
+      version="0.1.4",
       classifiers=[
           'Intended Audience :: Developers',
           'Programming Language :: Python',
@@ -9,7 +9,7 @@ setup(name='juju-dbinspect',
       author='Kapil Thangavelu',
       author_email='kapil.foss@gmail.com',
       description="Juju database introspection",
-      long_description=open("readme.rst").read(),
+      long_description=open("README.rst").read(),
       url='https://github.com/kapilt/juju-dbinspect',
       license='BSD',
       packages=find_packages(),
