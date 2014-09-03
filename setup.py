@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(name='juju-dbinspect',
-      version="0.1.5",
+      version="0.1.6",
       classifiers=[
           'Intended Audience :: Developers',
           'Programming Language :: Python',

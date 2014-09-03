@@ -1,4 +1,5 @@
 from distutils.version import LooseVersion
+import logging
 import json
 import subprocess
 import os
@@ -58,6 +59,7 @@ class Config(object):
             env_data['bootstrap-host'] = env_data['state-servers'][
                 0].split(":")[0]
         uri = "mongodb://%(bootstrap-host)s:37017/juju?w=1&ssl=true" % env_data
+        logging.debug("Connecting to mongo @ %s" % uri)
         return uri, env_data['admin-secret']
 
     @property
