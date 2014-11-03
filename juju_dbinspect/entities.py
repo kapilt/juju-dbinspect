@@ -4,6 +4,7 @@ license: GPLv3
 author: kapil.foss at gmail dot com
 """
 import itertools
+import pprint
 from bson.objectid import ObjectId
 
 
@@ -120,8 +121,14 @@ def charm(db, charm_url):
 def history(db, count=100):
     """Retrieve last n transactions on the environment."""
     size = db.txns.count()
-    for t in db.txns.find(skip=(size-count)):
+    for t in db.txns.find(skip=max((size-count), 0)):
         Txn.format(t)
+
+
+@shellfunc
+def stats(db):
+    stats = db.command({'dbstats': 1})
+    pprint.pprint(stats)
 
 
 class Base(dict):
